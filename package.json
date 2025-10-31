@@ -1,6 +1,6 @@
 {
   "name": "react-native-audio-metadata",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "extract audio metadata android",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
