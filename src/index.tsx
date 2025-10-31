@@ -1,5 +1,7 @@
-import AudioMetadata from './NativeAudioMetadata';
+import AudioMetadataModule, { type AudioMetadata } from './NativeAudioMetadata';
 
-export function multiply(a: number, b: number): number {
-  return AudioMetadata.multiply(a, b);
+export type { AudioMetadata };
+
+export function getAudioMetadata(filePath: string): Promise<AudioMetadata> {
+  return AudioMetadataModule.getAudioMetadata(filePath);
 }
