@@ -11,12 +11,14 @@ import {
   ScrollView,
 } from 'react-native';
 import {
-  getAudioMetadata,
+  getMetadata,
+  getArtwork,
   type AudioMetadata,
 } from 'react-native-audio-metadata';
 
 export default function App() {
   const [metadata, setMetadata] = useState<AudioMetadata | null>(null);
+  const [artwork, setArtwork] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [hasPermission, setHasPermission] = useState<boolean>(false);
@@ -34,25 +36,26 @@ export default function App() {
     try {
       const androidVersion = Platform.Version;
 
-      // Android 13+ (API 33+) usa READ_MEDIA_AUDIO
+      // Android 13+ (API 33+) usa READ_MEDIA_AUDIO y READ_MEDIA_VIDEO
       if (androidVersion >= 33) {
-        const granted = await PermissionsAndroid.request(
+        const results = await PermissionsAndroid.requestMultiple([
           'android.permission.READ_MEDIA_AUDIO' as any,
-          {
-            title: 'Permiso para leer archivos de audio',
-            message: 'La app necesita acceso para leer archivos de audio',
-            buttonNeutral: 'Preguntar después',
-            buttonNegative: 'Cancelar',
-            buttonPositive: 'OK',
-          }
-        );
+          'android.permission.READ_MEDIA_VIDEO' as any,
+        ]);
 
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        const audioGranted =
+          results['android.permission.READ_MEDIA_AUDIO'] ===
+          PermissionsAndroid.RESULTS.GRANTED;
+        const videoGranted =
+          results['android.permission.READ_MEDIA_VIDEO'] ===
+          PermissionsAndroid.RESULTS.GRANTED;
+
+        if (audioGranted && videoGranted) {
           setHasPermission(true);
           setError('');
         } else {
           setHasPermission(false);
-          setError('Permiso de almacenamiento denegado');
+          setError('Permisos de almacenamiento denegados');
         }
       } else {
         // Android 12 y anteriores usa READ_EXTERNAL_STORAGE
@@ -92,11 +95,21 @@ export default function App() {
     try {
       setError('');
       setMetadata(null);
-      const data = await getAudioMetadata(filePath);
+      setArtwork(null);
+
+      const [data, art] = await Promise.all([
+        getMetadata(filePath),
+        getArtwork(filePath),
+      ]);
+
+      console.log('Metadata:', JSON.stringify(data, null, 2));
+      console.log('Artwork:', art ? 'received' : 'null');
       setMetadata(data);
+      setArtwork(art);
     } catch (err: any) {
       setError(`Error: ${err.message || err}`);
       setMetadata(null);
+      setArtwork(null);
     }
   };
 
@@ -118,7 +131,7 @@ export default function App() {
         <View style={styles.section}>
           <TextInput
             style={styles.input}
-            placeholder="Ej: /storage/emulated/0/Download/Hate Me.mp3"
+            placeholder="Ej: /storage/emulated/0/Download/Beele.mp4"
             value={filePath}
             onChangeText={setFilePath}
           />
@@ -152,7 +165,7 @@ export default function App() {
               </View>
             )}
 
-            {metadata.duration && (
+            {metadata.duration != null && metadata.duration > 0 && (
               <View style={styles.metadataRow}>
                 <Text style={styles.metadataLabel}>Duración:</Text>
                 <Text style={styles.metadataValue}>
@@ -179,13 +192,10 @@ export default function App() {
               </View>
             )}
 
-            {metadata.artwork && (
+            {artwork && (
               <View style={styles.imageContainer}>
                 <Text style={styles.metadataLabel}>Artwork:</Text>
-                <Image
-                  source={{ uri: metadata.artwork }}
-                  style={styles.artwork}
-                />
+                <Image source={{ uri: artwork }} style={styles.artwork} />
               </View>
             )}
           </View>
@@ -262,8 +272,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   artwork: {
-    width: 200,
-    height: 200,
+    width: 50,
+    height: 50,
     marginTop: 10,
     borderRadius: 10,
   },
