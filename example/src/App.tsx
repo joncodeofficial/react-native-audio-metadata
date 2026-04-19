@@ -150,7 +150,12 @@ export default function App() {
                   styles.aspectButton,
                   aspectRatio === ratio && styles.aspectButtonActive,
                 ]}
-                onPress={() => setAspectRatio(ratio)}
+                onPress={() => {
+                  setAspectRatio(ratio);
+                  setMetadata(null);
+                  setArtwork(null);
+                  setError('');
+                }}
               >
                 <Text
                   style={[
