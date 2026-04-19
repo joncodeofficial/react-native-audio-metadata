@@ -5,11 +5,11 @@ A React Native library to extract metadata and artwork from audio and video file
 ## Features
 
 - Extract complete metadata from audio and video files
-- Get embedded artwork (album art) or video thumbnails as base64
-- Video thumbnails are center-cropped to 1:1 for playlist consistency
+- Get embedded artwork (album art) from audio files as base64
+- Get video thumbnails with configurable aspect ratio: `1:1` or `16:9`
 - Black frame detection (returns null instead of black thumbnails)
 - Fast and efficient native implementation
-- Proper permission handling for Android 13+
+- Proper permission handling for Android 10, 11, and 13+
 - Android support (iOS coming soon)
 
 ## Installation
@@ -37,8 +37,6 @@ Add the following permissions to your `android/app/src/main/AndroidManifest.xml`
 ```
 
 ### Request Permissions at Runtime
-
-For Android 13+ (API 33+), you need to request permissions at runtime:
 
 ```typescript
 import { PermissionsAndroid, Platform } from 'react-native';
@@ -74,7 +72,7 @@ import { getMetadata, getArtwork, type AudioMetadata } from 'react-native-audio-
 
 async function extractInfo() {
   try {
-    const filePath = '/storage/emulated/0/Download/song.mp3';
+    const filePath = '/storage/emulated/0/Music/song.mp3';
 
     // Get metadata (lightweight, text only)
     const metadata: AudioMetadata = await getMetadata(filePath);
@@ -84,7 +82,10 @@ async function extractInfo() {
 
     // Get artwork separately (heavier, returns base64 image)
     const artwork: string | null = await getArtwork(filePath);
-    console.log('Has artwork:', artwork !== null);
+
+    // For video files, you can specify the aspect ratio of the thumbnail
+    const thumbnail16x9 = await getArtwork('/storage/emulated/0/Movies/video.mp4', '16:9');
+    const thumbnail1x1  = await getArtwork('/storage/emulated/0/Movies/video.mp4', '1:1');
   } catch (error) {
     console.error('Error:', error);
   }
@@ -114,13 +115,22 @@ All fields are optional. If a field is not available, it will be `undefined`.
 
 ---
 
-### `getArtwork(filePath: string): Promise<string | null>`
+### `getArtwork(filePath: string, aspectRatio?: AspectRatio): Promise<string | null>`
 
 Extracts artwork from an audio or video file.
 
-- **Audio files**: Returns embedded album art (ID3 tags, etc.)
-- **Video files**: Returns a center-cropped 1:1 thumbnail from the video
-- Returns `null` if no artwork is available or if the extracted frame is black
+| Parameter     | Type          | Default | Description                                      |
+|---------------|---------------|---------|--------------------------------------------------|
+| `filePath`    | `string`      | —       | Absolute path to the audio or video file         |
+| `aspectRatio` | `AspectRatio` | `'1:1'` | Crop ratio for video thumbnails (`'1:1'` or `'16:9'`) |
+
+```typescript
+type AspectRatio = '1:1' | '16:9';
+```
+
+- **Audio files**: Returns embedded album art (ID3 tags). `aspectRatio` is ignored.
+- **Video files**: Returns a cropped thumbnail frame from the video in the requested aspect ratio.
+- Returns `null` if no artwork is available or if the extracted frame is black.
 
 The returned string is a base64 data URI (`data:image/jpeg;base64,...`).
 
@@ -130,10 +140,11 @@ The returned string is a base64 data URI (`data:image/jpeg;base64,...`).
 
 Both functions may reject with the following error codes:
 
-- `FILE_NOT_FOUND`: The specified file does not exist
-- `PERMISSION_DENIED`: Missing required permissions
-- `INVALID_FILE`: Invalid file or unsupported format
-- `ERROR`: General error during extraction
+| Code               | Description                                    |
+|--------------------|------------------------------------------------|
+| `PERMISSION_DENIED`| Missing required permissions                   |
+| `INVALID_FILE`     | Invalid file or unsupported format             |
+| `ERROR`            | General error during extraction                |
 
 ## Example
 
@@ -181,6 +192,18 @@ function MusicPlayer() {
 }
 ```
 
+### Video Thumbnail with Aspect Ratio
+
+```typescript
+import { getArtwork } from 'react-native-audio-metadata';
+
+// Square thumbnail (default) — ideal for grids or playlists
+const square = await getArtwork('/storage/emulated/0/Movies/clip.mp4');
+
+// Widescreen thumbnail — ideal for video players or cards
+const wide = await getArtwork('/storage/emulated/0/Movies/clip.mp4', '16:9');
+```
+
 ### Format Duration
 
 ```typescript
@@ -215,7 +238,7 @@ async function processMultipleFiles(filePaths: string[]) {
 
 ## Supported Formats
 
-The library supports all formats supported by Android's MediaMetadataRetriever:
+The library supports all formats supported by Android's `MediaMetadataRetriever`:
 
 **Audio:** MP3, MP4/M4A, WAV, FLAC, OGG, AAC, 3GP, and more.
 
@@ -223,29 +246,32 @@ The library supports all formats supported by Android's MediaMetadataRetriever:
 
 ## Platform Support
 
-| Platform | Supported |
-|----------|-----------|
-| Android  | Yes       |
-| iOS      | Coming soon |
+| Platform | Supported    |
+|----------|--------------|
+| Android  | Yes          |
+| iOS      | Coming soon  |
 
 ## Troubleshooting
 
-### "File does not exist" error
+### File not found
 
-Make sure you're using the absolute path to the file:
-- `/storage/emulated/0/Download/song.mp3`
-- Not `~/Download/song.mp3`
+Make sure you are using the absolute path to the file:
+- `/storage/emulated/0/Music/song.mp3` ✓
+- `~/Music/song.mp3` ✗
 
-### "Permission denied" error
+### Permission denied
 
 1. Make sure permissions are declared in `AndroidManifest.xml`
 2. Request permissions at runtime (especially for Android 13+)
-3. Check that the user granted the permissions
+3. Confirm the user granted the permissions
 
-### Artwork returns null
+### Artwork returns null for audio
 
-- **Audio**: The file may not have embedded artwork
-- **Video**: The extracted frame may be black (the library detects and returns null in this case)
+The file may not have embedded artwork in its ID3 tags.
+
+### Artwork returns null for video
+
+The extracted frame may be black (the library detects this and returns `null`). Try a file with visible content.
 
 ## Contributing
 
