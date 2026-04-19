@@ -9,9 +9,11 @@ export interface AudioMetadata {
   genre?: string;
 }
 
+export type AspectRatio = '1:1' | '16:9';
+
 export interface Spec extends TurboModule {
   getMetadata(filePath: string): Promise<AudioMetadata>;
-  getArtwork(filePath: string): Promise<string | null>;
+  getArtwork(filePath: string, aspectRatio?: string): Promise<string | null>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('AudioMetadata');

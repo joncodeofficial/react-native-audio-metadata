@@ -62,7 +62,7 @@ class AudioMetadataModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  override fun getArtwork(filePath: String, promise: Promise) {
+  override fun getArtwork(filePath: String, aspectRatio: String?, promise: Promise) {
     try {
       val file = java.io.File(filePath)
       if (!file.exists()) {
@@ -77,7 +77,9 @@ class AudioMetadataModule(reactContext: ReactApplicationContext) :
       val retriever = MediaMetadataRetriever()
       retriever.setDataSource(filePath)
 
-      // Try embedded artwork first (album art for audio, poster for video)
+      val mimeType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: ""
+      val isVideo = mimeType.startsWith("video/")
+
       val embeddedArt = retriever.embeddedPicture
       if (embeddedArt != null) {
         val base64 = android.util.Base64.encodeToString(embeddedArt, android.util.Base64.NO_WRAP)
@@ -86,18 +88,23 @@ class AudioMetadataModule(reactContext: ReactApplicationContext) :
         return
       }
 
-      // Fallback: extract video thumbnail
+      if (!isVideo) {
+        retriever.release()
+        promise.resolve(null)
+        return
+      }
+
       val thumbnail = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
         android.media.ThumbnailUtils.createVideoThumbnail(
           java.io.File(filePath),
-          android.util.Size(512, 512),
+          android.util.Size(1280, 720),
           null
         )
       } else {
         @Suppress("DEPRECATION")
         android.media.ThumbnailUtils.createVideoThumbnail(
           filePath,
-          android.provider.MediaStore.Images.Thumbnails.MINI_KIND
+          android.provider.MediaStore.Images.Thumbnails.FULL_SCREEN_KIND
         )
       }
 
@@ -109,13 +116,12 @@ class AudioMetadataModule(reactContext: ReactApplicationContext) :
         return
       }
 
-      // Center crop to 1:1 square (fill and crop excess)
-      val square = centerCropToSquare(thumbnail)
+      val cropped = if (aspectRatio == "16:9") cropTo16x9(thumbnail) else centerCropToSquare(thumbnail)
       thumbnail.recycle()
 
       val stream = java.io.ByteArrayOutputStream()
-      square.compress(Bitmap.CompressFormat.JPEG, 80, stream)
-      square.recycle()
+      cropped.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+      cropped.recycle()
 
       val base64 = android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
       promise.resolve("data:image/jpeg;base64,$base64")
@@ -133,6 +139,21 @@ class AudioMetadataModule(reactContext: ReactApplicationContext) :
     val x = (source.width - size) / 2
     val y = (source.height - size) / 2
     return Bitmap.createBitmap(source, x, y, size, size)
+  }
+
+  private fun cropTo16x9(source: Bitmap): Bitmap {
+    val targetWidth: Int
+    val targetHeight: Int
+    if (source.width.toFloat() / source.height > 16f / 9f) {
+      targetHeight = source.height
+      targetWidth = (source.height * 16f / 9f).toInt()
+    } else {
+      targetWidth = source.width
+      targetHeight = (source.width * 9f / 16f).toInt()
+    }
+    val x = (source.width - targetWidth) / 2
+    val y = (source.height - targetHeight) / 2
+    return Bitmap.createBitmap(source, x, y, targetWidth, targetHeight)
   }
 
   private fun isBitmapBlack(bitmap: Bitmap): Boolean {
