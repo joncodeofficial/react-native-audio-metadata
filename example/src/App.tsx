@@ -9,19 +9,24 @@ import {
   PermissionsAndroid,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import {
   getMetadata,
   getArtwork,
   type AudioMetadata,
+  type AspectRatio,
 } from 'react-native-audio-metadata';
 
 export default function App() {
   const [metadata, setMetadata] = useState<AudioMetadata | null>(null);
   const [artwork, setArtwork] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string>('');
+  const [filePath, setFilePath] = useState<string>(
+    '/storage/emulated/0/Music/'
+  );
   const [error, setError] = useState<string>('');
   const [hasPermission, setHasPermission] = useState<boolean>(false);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
 
   useEffect(() => {
     requestStoragePermission();
@@ -99,7 +104,7 @@ export default function App() {
 
       const [data, art] = await Promise.all([
         getMetadata(filePath),
-        getArtwork(filePath),
+        getArtwork(filePath, aspectRatio),
       ]);
 
       console.log('Metadata:', JSON.stringify(data, null, 2));
@@ -135,6 +140,30 @@ export default function App() {
             value={filePath}
             onChangeText={setFilePath}
           />
+
+          <Text style={styles.aspectLabel}>Aspect ratio del artwork:</Text>
+          <View style={styles.aspectRow}>
+            {(['1:1', '16:9'] as AspectRatio[]).map((ratio) => (
+              <TouchableOpacity
+                key={ratio}
+                style={[
+                  styles.aspectButton,
+                  aspectRatio === ratio && styles.aspectButtonActive,
+                ]}
+                onPress={() => setAspectRatio(ratio)}
+              >
+                <Text
+                  style={[
+                    styles.aspectButtonText,
+                    aspectRatio === ratio && styles.aspectButtonTextActive,
+                  ]}
+                >
+                  {ratio}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <Button title="Obtener Metadatos" onPress={handleGetMetadata} />
         </View>
 
@@ -195,7 +224,14 @@ export default function App() {
             {artwork && (
               <View style={styles.imageContainer}>
                 <Text style={styles.metadataLabel}>Artwork:</Text>
-                <Image source={{ uri: artwork }} style={styles.artwork} />
+                <Image
+                  source={{ uri: artwork }}
+                  style={
+                    aspectRatio === '16:9'
+                      ? styles.artwork16x9
+                      : styles.artwork1x1
+                  }
+                />
               </View>
             )}
           </View>
@@ -208,6 +244,7 @@ export default function App() {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
+    backgroundColor: '#f0f4ff',
   },
   container: {
     flex: 1,
@@ -219,11 +256,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 40,
     marginBottom: 10,
+    color: '#3a5a9b',
   },
   permissionStatus: {
     fontSize: 14,
     marginBottom: 10,
-    color: '#555',
+    color: '#6a8abf',
   },
   section: {
     marginTop: 20,
@@ -231,28 +269,38 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#b0c4e8',
+    backgroundColor: '#ffffff',
     padding: 10,
     marginBottom: 10,
-    borderRadius: 5,
+    borderRadius: 8,
     fontSize: 12,
+    color: '#334e7a',
   },
   error: {
-    color: 'red',
+    color: '#e05c5c',
     marginTop: 10,
     textAlign: 'center',
   },
   metadataContainer: {
     marginTop: 20,
     width: '100%',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d0e0f8',
+    shadowColor: '#a0b8e0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#3a5a9b',
   },
   metadataRow: {
     flexDirection: 'row',
@@ -262,18 +310,58 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     width: 80,
     fontSize: 14,
+    color: '#5578b0',
   },
   metadataValue: {
     flex: 1,
     fontSize: 14,
+    color: '#334e7a',
+  },
+  aspectLabel: {
+    fontSize: 13,
+    color: '#5578b0',
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  aspectRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  aspectButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#b0c4e8',
+    backgroundColor: '#ffffff',
+  },
+  aspectButtonActive: {
+    backgroundColor: '#3a5a9b',
+    borderColor: '#3a5a9b',
+  },
+  aspectButtonText: {
+    fontSize: 13,
+    color: '#3a5a9b',
+    fontWeight: 'bold',
+  },
+  aspectButtonTextActive: {
+    color: '#ffffff',
   },
   imageContainer: {
     marginTop: 15,
     alignItems: 'center',
   },
-  artwork: {
-    width: 50,
-    height: 50,
+  artwork1x1: {
+    width: 160,
+    height: 160,
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  artwork16x9: {
+    width: 280,
+    height: 158,
     marginTop: 10,
     borderRadius: 10,
   },
