@@ -1,7 +1,7 @@
 {
   "name": "react-native-audio-metadata",
   "version": "2.1.0",
-  "description": "extract audio metadata android",
+  "description": "Extract audio metadata for React Native — New Architecture (TurboModules + JSI) with support for MP3, FLAC, WAV, AAC, M4A and more on iOS & Android.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -42,8 +42,25 @@
   },
   "keywords": [
     "react-native",
+    "audio",
+    "metadata",
+    "id3",
+    "mp3",
+    "flac",
+    "wav",
+    "aac",
+    "m4a",
+    "audio-metadata",
+    "music",
+    "tags",
+    "react-native-audio",
+    "react-native-metadata",
+    "react native audio metadata",
+    "turbo modules",
+    "new architecture",
     "ios",
-    "android"
+    "android",
+    "expo"
   ],
   "repository": {
     "type": "git",
