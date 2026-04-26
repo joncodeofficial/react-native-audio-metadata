@@ -10,7 +10,9 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
+import DocumentPicker from 'react-native-document-picker';
 import {
   getMetadata,
   getArtwork,
@@ -30,6 +32,24 @@ export default function App() {
 
   useEffect(() => {
     requestStoragePermission();
+
+    const applyURL = (url: string) => {
+      const path = decodeURIComponent(url.replace('file://', ''));
+      setFilePath(path);
+      setMetadata(null);
+      setArtwork(null);
+      setError('');
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url?.startsWith('file://')) applyURL(url);
+    });
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (url?.startsWith('file://')) applyURL(url);
+    });
+
+    return () => sub.remove();
   }, []);
 
   const requestStoragePermission = async () => {
@@ -89,6 +109,24 @@ export default function App() {
     }
   };
 
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.pickSingle({
+        type: DocumentPicker.types.allFiles,
+        copyTo: 'cachesDirectory',
+      });
+      const path = (result.fileCopyUri ?? result.uri).replace('file://', '');
+      setFilePath(decodeURIComponent(path));
+      setMetadata(null);
+      setArtwork(null);
+      setError('');
+    } catch (err) {
+      if (!DocumentPicker.isCancel(err)) {
+        setError('Error al seleccionar archivo');
+      }
+    }
+  };
+
   const handleGetMetadata = async () => {
     if (!hasPermission) {
       setError(
@@ -134,6 +172,9 @@ export default function App() {
         )}
 
         <View style={styles.section}>
+          <TouchableOpacity style={styles.pickButton} onPress={handlePickFile}>
+            <Text style={styles.pickButtonText}>Seleccionar archivo</Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Ej: /storage/emulated/0/Download/Beele.mp4"
@@ -271,6 +312,18 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 20,
     width: '100%',
+  },
+  pickButton: {
+    backgroundColor: '#3a5a9b',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  pickButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
