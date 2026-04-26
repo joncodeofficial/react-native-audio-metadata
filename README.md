@@ -10,7 +10,6 @@ A React Native library to extract metadata and artwork from audio and video file
 - Black frame detection (returns null instead of black thumbnails)
 - Fast and efficient native implementation
 - Proper permission handling for Android 10, 11, and 13+
-- Android support (iOS coming soon)
 
 ## Installation
 
@@ -53,8 +52,10 @@ async function requestMediaPermissions() {
     ]);
 
     return (
-      results['android.permission.READ_MEDIA_AUDIO'] === PermissionsAndroid.RESULTS.GRANTED &&
-      results['android.permission.READ_MEDIA_VIDEO'] === PermissionsAndroid.RESULTS.GRANTED
+      results['android.permission.READ_MEDIA_AUDIO'] ===
+        PermissionsAndroid.RESULTS.GRANTED &&
+      results['android.permission.READ_MEDIA_VIDEO'] ===
+        PermissionsAndroid.RESULTS.GRANTED
     );
   } else {
     const granted = await PermissionsAndroid.request(
@@ -68,7 +69,11 @@ async function requestMediaPermissions() {
 ## Usage
 
 ```typescript
-import { getMetadata, getArtwork, type AudioMetadata } from 'react-native-audio-metadata';
+import {
+  getMetadata,
+  getArtwork,
+  type AudioMetadata,
+} from 'react-native-audio-metadata';
 
 async function extractInfo() {
   try {
@@ -84,8 +89,14 @@ async function extractInfo() {
     const artwork: string | null = await getArtwork(filePath);
 
     // For video files, you can specify the aspect ratio of the thumbnail
-    const thumbnail16x9 = await getArtwork('/storage/emulated/0/Movies/video.mp4', '16:9');
-    const thumbnail1x1  = await getArtwork('/storage/emulated/0/Movies/video.mp4', '1:1');
+    const thumbnail16x9 = await getArtwork(
+      '/storage/emulated/0/Movies/video.mp4',
+      '16:9'
+    );
+    const thumbnail1x1 = await getArtwork(
+      '/storage/emulated/0/Movies/video.mp4',
+      '1:1'
+    );
   } catch (error) {
     console.error('Error:', error);
   }
@@ -102,12 +113,12 @@ Extracts text metadata from an audio or video file.
 
 ```typescript
 interface AudioMetadata {
-  title?: string;       // Title
-  artist?: string;      // Artist name
-  album?: string;       // Album name
-  duration?: number;    // Duration in milliseconds
-  year?: string;        // Release year
-  genre?: string;       // Genre
+  title?: string; // Title
+  artist?: string; // Artist name
+  album?: string; // Album name
+  duration?: number; // Duration in milliseconds
+  year?: string; // Release year
+  genre?: string; // Genre
 }
 ```
 
@@ -119,9 +130,9 @@ All fields are optional. If a field is not available, it will be `undefined`.
 
 Extracts artwork from an audio or video file.
 
-| Parameter     | Type          | Default | Description                                      |
-|---------------|---------------|---------|--------------------------------------------------|
-| `filePath`    | `string`      | —       | Absolute path to the audio or video file         |
+| Parameter     | Type          | Default | Description                                           |
+| ------------- | ------------- | ------- | ----------------------------------------------------- |
+| `filePath`    | `string`      | —       | Absolute path to the audio or video file              |
 | `aspectRatio` | `AspectRatio` | `'1:1'` | Crop ratio for video thumbnails (`'1:1'` or `'16:9'`) |
 
 ```typescript
@@ -140,11 +151,11 @@ The returned string is a base64 data URI (`data:image/jpeg;base64,...`).
 
 Both functions may reject with the following error codes:
 
-| Code               | Description                                    |
-|--------------------|------------------------------------------------|
-| `PERMISSION_DENIED`| Missing required permissions                   |
-| `INVALID_FILE`     | Invalid file or unsupported format             |
-| `ERROR`            | General error during extraction                |
+| Code                | Description                        |
+| ------------------- | ---------------------------------- |
+| `PERMISSION_DENIED` | Missing required permissions       |
+| `INVALID_FILE`      | Invalid file or unsupported format |
+| `ERROR`             | General error during extraction    |
 
 ## Example
 
@@ -246,16 +257,15 @@ The library supports all formats supported by Android's `MediaMetadataRetriever`
 
 ## Platform Support
 
-| Platform | Supported    |
-|----------|--------------|
-| Android  | Yes          |
-| iOS      | Coming soon  |
-
-## Troubleshooting
+| Platform | Supported |
+| -------- | --------- |
+| Android  | Yes       |
+| iOS      | Yes       |
 
 ### File not found
 
 Make sure you are using the absolute path to the file:
+
 - `/storage/emulated/0/Music/song.mp3` ✓
 - `~/Music/song.mp3` ✗
 
